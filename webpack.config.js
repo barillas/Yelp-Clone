@@ -1,4 +1,8 @@
+require('babel-register');
+
 const NODE_ENV = process.env.NODE_ENV;
+const isDev  = NODE_ENV === 'development';
+const isTest = NODE_ENV === 'test';
 const dotenv = require('dotenv');
 
 //Webpack Setup
@@ -17,13 +21,30 @@ const modules = join(root, 'node_modules');
 const dest    = join(root, 'dist');
 
 var config = getConfig({
+  isDev,
   in: join(src, 'app.js'),
   out: dest,
   clearBeforeBuild: true
-})
+});
 
+if (isTest) {
+  config.externals = {
+    'react/lib/ReactContext': true,
+    'react/lib/ExecutionEnvironment': true
+  }
 
-const isDev = NODE_ENV === 'development';
+  config.plugins = config.plugins.filter(p => {
+    const name = p.constructor.toString();
+    const fnName = name.match(/^function (.*)\((.*\))/)
+
+    const idx = [
+      'DedupePlugin',
+      'UglifyJsPlugin'
+    ].indexOf(fnName[1]);
+    return idx < 0;
+  })
+}
+// .
 
 const dotEnvVars = dotenv.config();
 const environmentEnv = dotenv.config({
